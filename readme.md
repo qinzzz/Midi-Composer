@@ -1,10 +1,12 @@
 # Midi Composer
 
 1. first try: use jazz dataset
+
     number of songs:
+    
     size: 
 
-2. some structures and code are borrowed from https://github.com/Conchylicultor/MusicGenerator
+2. some ideas and code are borrowed from https://github.com/Conchylicultor/MusicGenerator
 
 3. basic music knowledge & assumptions
 
