@@ -1,4 +1,4 @@
-# Jazz Composer
+# Midi Composer
 
 1. first try: use jazz dataset
     number of songs:
