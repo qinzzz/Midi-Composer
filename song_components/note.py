@@ -37,3 +37,6 @@ class Note:
 		"""
 		assert NB_NOTES >= rel >= 0
 		self.note = rel + MIDI_NOTES_RANGE[0]
+
+	def display(self):
+		print("note:{}, tick: {}, duration:{}".format(self.note, self.tick, self.duration))

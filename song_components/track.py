@@ -19,6 +19,7 @@ class Track:
 
 	def __init__(self):
 		# self.tempo_map = None  # Use a global tempo map
+		self.id = 0
 		self.instrument = None
 		self.notes = []  # List[Note]
 		self.is_drum = False
@@ -38,3 +39,8 @@ class Track:
 			self.is_drum = True
 
 		return True
+
+	def display(self):
+		print("--- Track {} ---".format(self.id))
+		for note in self.notes:
+			note.display()

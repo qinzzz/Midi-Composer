@@ -12,8 +12,9 @@ midiparser.py
 
 import mido  # Midi lib
 
-from song_components import note, track, song
-
+from song_components.song import Song
+from song_components.track import Track
+from song_components.note import Note
 
 class MidiInvalidException(Exception):
 	pass
@@ -43,9 +44,6 @@ class MidiParser:
 
 	# Define a max song length ?
 
-	# self.resolution = 0  # bpm
-	# self.initial_tempo = 0.0
-
 	# self.data = None  # Sparse tensor of size [NB_KEYS,nb_bars*BAR_DIVISION] or simply a list of note ?
 
 	@staticmethod
@@ -73,7 +71,7 @@ class MidiParser:
 		# Assert
 		if midi_data.type != 1:
 			raise MidiInvalidException('Only type 1 supported ({} given)'.format(midi_data.type))
-		if not 0 < midi_data.ticks_per_beat < 128:
+		if not 0 < midi_data.ticks_per_beat:
 			raise MidiInvalidException('SMTPE timecode not supported ({} given)'.format(midi_data.ticks_per_beat))
 
 		# Get tracks messages
@@ -98,7 +96,7 @@ class MidiParser:
 		# Merge tracks ? < Not when creating the dataset
 		# midi_data.tracks = [mido.merge_tracks(midi_data.tracks)] ??
 
-		new_song = song.Song()
+		new_song = Song()
 
 		new_song.ticks_per_beat = midi_data.ticks_per_beat
 
@@ -118,13 +116,16 @@ class MidiParser:
 				pass  # TODO
 			else:
 				err_msg = 'Header track contains unsupported meta-message type ({})'.format(message.type)
-				raise MidiInvalidException(err_msg)
+				# raise MidiInvalidException(err_msg)
+
+		new_song.track_nb = len(midi_data.tracks)
 
 		for i, track in enumerate(midi_data.tracks[1:]):  # We ignore the tempo map
 			i += 1  # Warning: We have skipped the track 0 so shift the track id
 			# tqdm.write('Track {}: {}'.format(i, track.name))
 
-			new_track = track.Track()
+			new_track = Track()
+			new_track.id = i
 
 			buffer_notes = []  # Store the current notes (pressed but not released)
 			abs_tick = 0  # Absolute nb of ticks from the beginning of the track
@@ -138,16 +139,19 @@ class MidiParser:
 						raise MidiInvalidException('Track {} should not contain {}'.format(i, message.type))
 					else:
 						err_msg = 'Track {} contains unsupported meta-message type ({})'.format(i, message.type)
-						raise MidiInvalidException(err_msg)
-					# What about 'sequence_number', cue_marker ???
+						# raise MidiInvalidException(err_msg)
+
 				else:  # Note event
 					if message.type == 'note_on' and message.velocity != 0:  # Note added
-						new_note = note.Note()
+						new_note = Note()
 						new_note.tick = abs_tick
 						new_note.note = message.note
-						if message.channel + 1 != i and message.channel + 1 != MidiParser.MIDI_CHANNEL_DRUMS:  # Warning: Mido shift the channels (start at 0) # TODO: Channel management for type 0
-							raise MidiInvalidException('Notes belong to the wrong tracks ({} instead of {})'.format(i,
-																													message.channel))  # Warning: May not be an error (drums ?) but probably
+
+						# # TODO: ignore for NOW. Check later!!
+						# if message.channel + 1 != i and message.channel + 1 != MidiParser.MIDI_CHANNEL_DRUMS:
+						# 	# Warning: Mido shift the channels (start at 0) # TODO: Channel management for type 0
+						# 	raise MidiInvalidException('Notes belong to the wrong tracks ({} instead of {})'.format(i,
+						# 																							message.channel))  # Warning: May not be an error (drums ?) but probably
 						buffer_notes.append(new_note)
 					elif message.type == 'note_off' or message.type == 'note_on':  # Note released
 						for note in buffer_notes:
@@ -156,9 +160,9 @@ class MidiParser:
 								buffer_notes.remove(note)
 								new_track.notes.append(note)
 					elif message.type == 'program_change':  # Instrument change
-						if not new_track.set_instrument(message):
-							# TODO: We should create another track with the new instrument
-							raise MidiInvalidException('Track {} as already a program defined'.format(i))
+						# TODO: ignore for now. BUT We should create another track with the new instrument
+						# if not new_track.set_instrument(message):
+						# 	raise MidiInvalidException('Track {} as already a program defined'.format(i))
 						pass
 					elif message.type == 'control_change':  # Damper pedal, mono/poly, channel volume,...
 						# Ignored
@@ -247,6 +251,6 @@ class MidiParser:
 
 if __name__ == "__main__":
 	parser = MidiParser()
-	song = parser.load_file("data/2ndtime.mid")
-	print(song)
+	song = parser.load_file("data/4thAvenueTheme.mid")
+	song.display()
 

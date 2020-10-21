@@ -1,18 +1,22 @@
 # Midi Composer
 
-1. first try: use jazz dataset
+## About music data processing
 
-    number of songs:
+### dataset
+
+first try: use jazz dataset
+
+- number of songs:
     
-    size: 
+- size: 
 
-2. some ideas and code are borrowed from https://github.com/Conchylicultor/MusicGenerator
 
-3. basic music knowledge & assumptions
-
-    3.1 a midi file represents a song. It consists of multiple tracks. A track consists of multiple songs
+### basic music knowledge & assumptions
+1. a midi file represents a song. 
     
-    3.2 理解midi文件
+    It consists of multiple tracks. A track consists of multiple songs
+    
+2. 理解midi文件
     
     每个文件的track0为tempo map；存储meta message.
     ```
@@ -25,6 +29,7 @@
     <meta message time_signature numerator=4 denominator=4 clocks_per_click=24 notated_32nd_notes_per_beat=8 time=0>
     <meta message end_of_track time=0> 
     ```
+    tempo: microseconds per beat
     
     key_signature: 
     
@@ -32,6 +37,10 @@
     which is independent of the tempo, and indicates the position of the bar lines in the staff notation.
     
     比如这里是4/4拍，以1/4音符为一拍
+    
+    - Beats and ticks
+    *A beat is the same as a quarter note*. 
+    Beats are divided into **ticks**, the smallest unit of time in MIDI.
     
     - Note
     
@@ -45,7 +54,7 @@
         - tick: Absolute nb of ticks from the beginning of the track
         - duration: 不太懂还在看
     
-    3.3 区分速度（tempo）和节拍（meter）
+3. 区分速度（tempo）和节拍（meter）
     
     tempo 表示演奏时一拍的长度；
     
@@ -68,7 +77,19 @@
     
         ticks_per_beat = 96
     
-    3.4 如何解决每首歌节奏不同的问题？
+4. 如何表示一首歌
+
+    **pinao roll**
+    
+    每首歌都可以用一个` [num_track, pitch_range, time] `矩阵来表示。
+    
+    其中 num_track 表示轨道数量；
+    pitch_range 表示整个音域中的音符数（在这里用钢琴键数=88）；
+    time 表示整首歌的最大长度。
+    
+    其中，最大分辨率设为1/32音符，即将time step坐标转化为以1/32音符的数量计数。`time = old_time * 32/4 / resolution`
+
+5. *deprecated* 如何解决每首歌节奏不同的问题？
     
     不考虑tempo，归一化每个note的tick。
     
@@ -83,3 +104,6 @@
     
     这样note.tick就能准确反应每个音符的长短，与节拍无关。
     
+## About generation model
+
+some ideas and code are borrowed from https://github.com/Conchylicultor/MusicGenerator

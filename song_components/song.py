@@ -15,7 +15,6 @@ import operator  # To rescale the song
 class Song:
 	""" Structure which encapsulate the song data
 	"""
-
 	# Define the time unit
 	# Invert of time note which define the maximum resolution for a song. Ex: 2 for 1/2 note, 4 for 1/4 of note
 	MAXIMUM_SONG_RESOLUTION = 4
@@ -25,6 +24,7 @@ class Song:
 		self.ticks_per_beat = 96
 		self.tempo_map = []
 		self.tracks = []  # List[Track]
+		self.track_nb = 0
 
 	def __len__(self):
 		""" Return the absolute tick when the last note end
@@ -57,10 +57,17 @@ class Song:
 		scale = self._get_scale()
 		op = operator.floordiv if not inverse else operator.mul
 
-		# TODO: Not sure why this plot a decimal value (x.66). Investigate...
-		# print(song_length/scale)
-
 		# Shifting all notes
 		for track in self.tracks:
 			for note in track.notes:
 				note.tick = op(note.tick, scale)  # //= or *=
+
+	def display(self):
+		print("--- Song ---")
+		print("ticks pre beat: {}, scale: {}".format(self.ticks_per_beat, self._get_scale()))
+		print("track numbers:", self.track_nb)
+		print("tempo map:", self.tempo_map)
+
+		for i, track in enumerate(self.tracks):
+			track.display()
+
