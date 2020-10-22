@@ -45,7 +45,9 @@ class PianorollDataset(BaseDataset):
 		pianoroll = song.get_stacked_pianoroll()  # [time, pitch, track]
 
 		# normalize by 1/32 note
-		scale = song.beat_resolution // (self.time_unit/4)
+		scale = song.beat_resolution // (self.time_unit//4)
+		print(len(song.tempo), scale)
+
 		pianoroll = pianoroll[0:len(song.tempo):scale]
 		# trans pose
 		pianoroll = np.transpose(pianoroll, (2, 0, 1))  # [time, pitch, track] --> [track, time, pitch]
@@ -61,7 +63,7 @@ class PianorollDataset(BaseDataset):
 	def _prepare_examples(self):
 		example_path = os.path.join(self.data_root, self.example_file)
 		if os.path.exists(example_path):
-			print("loading training examples from [{}]", example_path)
+			print("loading training examples from [{}]".format(example_path))
 			self._load_training_examples()
 
 		else:
@@ -113,7 +115,8 @@ class PianorollDataset(BaseDataset):
 		self.ex_output_tensor = examples["output"]
 
 	def __len__(self):
-		return self.ex_input_tensor.size(0)
+		return 1000
+		# return self.ex_input_tensor.size(0)
 
 	def __getitem__(self, item):
 		return self.ex_input_tensor[item], self.ex_output_tensor[item]

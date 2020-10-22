@@ -63,6 +63,7 @@ class BaseDataset(Dataset):
 			for midi_file in tqdm(self.midi_files):
 				try:
 					song = self._load_song_from_file(midi_file)  # song: Song
+					song.binarize()
 				except Exception as e:
 					tqdm.write('File ignored ({}): {}'.format(midi_file, e))
 					pass

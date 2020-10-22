@@ -18,7 +18,7 @@ class RNNComposer:
 		self.note_nb = 88
 		self.look_before_limit = None
 		self.model = GRU(self.note_nb)
-		self.loss_function = nn.BCELoss()
+		self.loss_function = nn.BCEWithLogitsLoss()
 
 	def _get_note_from_logits(self, logits):
 		"""
@@ -26,7 +26,7 @@ class RNNComposer:
 		:param logits: [batch, seq_len, note_nb]
 		:return: next_note: [batch, note_nb] with 0 or 1
 		"""
-		next_logits = logits[:, -1, :]  # [batch, note_nb] between (0, 1)
+		next_logits = nn.Sigmoid()(logits[:, -1, :]) # [batch, note_nb] between (0, 1)
 		next_note = (next_logits > 0.5).float()
 
 		return next_note

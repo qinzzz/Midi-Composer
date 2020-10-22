@@ -1,5 +1,10 @@
 # Midi Composer
 
+**Under construction**
+
+**For now, ignore midiparser.py, song_componets/.**
+
+
 ## About music data processing
 
 ### dataset

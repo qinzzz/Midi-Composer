@@ -19,7 +19,7 @@ class Trainer:
 	def __init__(self):
 		print("init trainer... ")
 		self.INIT_LR = 1e-3
-		self.EPOCHS = 20
+		self.EPOCHS = 10
 
 		self.composer = RNNComposer()
 
@@ -28,7 +28,6 @@ class Trainer:
 		print("data loaded.")
 
 		self.optimizer = optim.Adam(self.composer.model.parameters(), lr = self.INIT_LR)
-
 
 	def train(self):
 		print("Start training...")
@@ -40,13 +39,13 @@ class Trainer:
 			for song_input, song_output in self.data_loader:
 				num_batches += 1
 				# input/output: matrix[batch, time, pitch = 88]
-
 				self.composer.model.train()
 				self.optimizer.zero_grad()
 
-				logits, _ = self.composer.model.forward(song_input) #  [batch, seq_len, note_nb]
+				logits, _ = self.composer.model.forward(song_input)  # [batch, seq_len, note_nb]
+
 				loss = self.composer.loss_function(logits, song_output)
-				total_loss+=loss
+				total_loss += loss
 				loss.backward()
 				self.optimizer.step()
 

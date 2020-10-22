@@ -30,12 +30,12 @@ class GRU(nn.Module):
 			h_n: [batch, num_layers * num_directions, hidden_size]
 		"""
 		# x_embed = self.embeddings(x)  # [batch, seq_len, input_size]
-		x_embed = self.linear1(x) # [batch, seq_len, input_size]
+		x_embed = self.linear1(x)  # [batch, seq_len, input_size]
 		if h_0 is not None:
 			output, h_n = self.gru(x_embed, h_0)
 		else:
 			output, h_n = self.gru(x_embed)
 
-		logits = self.sigmoid(self.linear2(output))
+		logits = self.linear2(output)
 
 		return logits, h_n
