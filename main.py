@@ -7,7 +7,7 @@ main.py
 @desc:
 """
 
-from models import composer
+import composer
 
 if __name__ == "__main__":
 	jazzGen = composer.Generator()

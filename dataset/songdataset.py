@@ -19,5 +19,5 @@ class SongDataset(BaseDataset):
 	def __len__(self):
 		raise NotImplementedError
 
-	def _preprocess(self, song):
+	def _process_song(self, song):
 		raise NotImplementedError

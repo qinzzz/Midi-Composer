@@ -7,16 +7,18 @@ composer.py
 @desc:
 """
 import torch
+import torch.nn as nn
 
-from song_components.song import Song
 from models.gru import GRU
+from song_components.song import Song
 
 
 class RNNComposer:
 	def __init__(self):
 		self.note_nb = 88
 		self.look_before_limit = None
-		self.rnn = GRU(self.note_nb)
+		self.model = GRU(self.note_nb)
+		self.loss_function = nn.BCELoss()
 
 	def _get_note_from_logits(self, logits):
 		"""
@@ -35,7 +37,7 @@ class RNNComposer:
 		:param prev_notes: [batch, seq_len, note_nb]
 		:return: next_note: [batch, note_nb] with 0 or 1
 		"""
-		logits, h_n = self.rnn.forward(prev_notes)
+		logits, h_n = self.model.forward(prev_notes)
 		return self._get_note_from_logits(logits)
 
 	def predict_next_sequence(self, prev_notes, length):
@@ -48,19 +50,19 @@ class RNNComposer:
 		if not self.look_before_limit:
 			next_notes = torch.empty(prev_notes.size(0), length, prev_notes.size(2))
 
-			logits, h_n = self.rnn.forward(prev_notes)
+			logits, h_n = self.model.forward(prev_notes)
 			next_note = self._get_note_from_logits(logits)
 			next_notes[:, 0, :] = next_note
 
 			for i in range(1, length):
-				logits, h_n = self.rnn.forward(next_note, h_n)
+				logits, h_n = self.model.forward(next_note, h_n)
 				next_note = self._get_note_from_logits(logits)
 
 				next_notes[:, i, :] = next_note
 
 			return next_notes
 
-	def train(self):
+	def train(self, data_loader):
 		raise NotImplementedError('training not implemented.')
 
 	def test(self):

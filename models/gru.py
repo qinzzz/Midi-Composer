@@ -6,12 +6,11 @@ gru.py
 
 @desc:
 """
-import torch
 import torch.nn as nn
 
 
 class GRU(nn.Module):
-	def __init__(self, note_nb, input_size = 128, hidden = 128):
+	def __init__(self, note_nb, input_size = 256, hidden = 128):
 		super(GRU, self).__init__()
 
 		self.embeddings = nn.Embedding(note_nb, input_size)

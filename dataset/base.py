@@ -14,20 +14,23 @@ from tqdm import tqdm
 
 
 class BaseDataset(Dataset):
-	def __init__(self):
+	def __init__(self, data_root):
 		super(BaseDataset, self).__init__()
 
 		self.SONG_MARKER = "raw songs"
 		self.PROCESSED_SONG_MARKER = "processed songs"
 
-		self.data_root = "../data"
+		self.data_root = data_root
 		self.midi_dir = "midi"
-		self.song_file = "song"
-		self.processed_song_file = "song_dataset"
+		self.processed_song_file = "song_dataset.pkl"
 
 		self.midi_files = []
-		self.songs = []
+
 		self.processed_songs = []
+
+		# tensor for training
+		self.ex_input_tensor = None
+		self.ex_output_tensor = None
 
 	def _load_midi_files(self):
 		if not os.path.isdir(self.data_root):
@@ -43,62 +46,49 @@ class BaseDataset(Dataset):
 				self.midi_files.append(os.path.join(self.data_root, self.midi_dir, file))
 
 	def _load_data_as_song(self):
-		if len(self.midi_files) == 0:
-			print("midi files not find! Start loading ...")
-			self._load_midi_files()
+		song_dataset_path = os.path.join(self.data_root, self.processed_song_file)
 
-		print("Start creating songs from midi files...")
-		for midi_file in tqdm(self.midi_files):
+		# if song_dataset.plk exists
+		if os.path.exists(song_dataset_path):
+			# load
+			self._load_processed_songs()
+		else:
+			# else
+			# create dataset from midi files
+			if len(self.midi_files) == 0:
+				print("midi files not find! Start loading ...")
+				self._load_midi_files()
 
-			try:
-				song = self._load_song_from_file(midi_file)  # song: Song
-			except Exception as e:
-				tqdm.write('File ignored ({}): {}'.format(midi_file, e))
-				pass
+			print("Start creating songs from midi files...")
+			for midi_file in tqdm(self.midi_files):
+				try:
+					song = self._load_song_from_file(midi_file)  # song: Song
+				except Exception as e:
+					tqdm.write('File ignored ({}): {}'.format(midi_file, e))
+					pass
 
-			processed_song = self._preprocess(song)
-			if processed_song is None:
-				pass
+				processed_song = self._process_song(song)
+				if processed_song is None:
+					continue
 
-			self.songs.append(song)
-			self.processed_songs.append(processed_song)
+				self.processed_songs.append(processed_song)
 
-			self._record(midi_file, song)
+				self._record(midi_file, song)
+
+			# save pickle files
+			self._save_data_as_song()
 
 	def _save_data_as_song(self):
-		self._save_songs(self.SONG_MARKER)
 		self._save_processed_songs(self.PROCESSED_SONG_MARKER)
-
-	def _load_songs(self):
-		song_path = os.path.join(self.data_root, self.song_file)
-		if not os.path.exists(song_path):
-			raise RuntimeError("{} does not exist!".format(song_path))
-
-		with open(song_path, "r") as f:
-			songs = pickle.load(f)
-		return songs["songs"]
 
 	def _load_processed_songs(self):
 		song_path = os.path.join(self.data_root, self.processed_song_file)
 		if not os.path.exists(song_path):
 			raise RuntimeError("{} does not exist!".format(song_path))
 
-		with open(song_path, "r") as f:
+		with open(song_path, "rb") as f:
 			songs = pickle.load(f)
-		return songs["songs"]
-
-	def _save_songs(self, marker):
-		song_path = os.path.join(self.data_root, self.song_file)
-		if os.path.exists(song_path):
-			print("Song file {} already exists!", song_path)
-			return
-
-		with open(song_path, "w") as f:
-			data = {
-				'version': marker,
-				'songs': self.songs
-			}
-			pickle.dump(data, f, -1)
+		self.processed_songs = songs["songs"]
 
 	def _save_processed_songs(self, marker):
 		song_path = os.path.join(self.data_root, self.processed_song_file)
@@ -126,7 +116,7 @@ class BaseDataset(Dataset):
 		"""
 		raise NotImplementedError
 
-	def _preprocess(self, song):
+	def _process_song(self, song):
 		"""
 		convert song object to array
 		:param song:
