@@ -15,10 +15,10 @@ from song_components.song import Song
 
 class RNNComposer:
 	def __init__(self):
-		self.note_nb = 88
+		self.note_nb = 128
 		self.look_before_limit = None
 		self.model = GRU(self.note_nb)
-		self.loss_function = nn.BCEWithLogitsLoss()
+		self.loss_function = nn.BCELoss()
 
 	def _get_note_from_logits(self, logits):
 		"""
@@ -26,8 +26,12 @@ class RNNComposer:
 		:param logits: [batch, seq_len, note_nb]
 		:return: next_note: [batch, note_nb] with 0 or 1
 		"""
-		next_logits = nn.Sigmoid()(logits[:, -1, :]) # [batch, note_nb] between (0, 1)
-		next_note = (next_logits > 0.5).float()
+		next_logits = logits[:, -1, :] # [batch, note_nb] between (0, 1)
+		next_note = (next_logits > 0.01).float()
+
+		# print("logits", logits)
+		# print("next_logits", next_logits)
+		# print("next_notes", torch.nonzero(next_note))
 
 		return next_note
 
@@ -47,6 +51,7 @@ class RNNComposer:
 		:param length: int
 		:return: next_notes: [batch, length, note_nb] with 0 or 1
 		"""
+
 		if not self.look_before_limit:
 			next_notes = torch.empty(prev_notes.size(0), length, prev_notes.size(2))
 
@@ -55,6 +60,7 @@ class RNNComposer:
 			next_notes[:, 0, :] = next_note
 
 			for i in range(1, length):
+				next_note.unsqueeze_(1)
 				logits, h_n = self.model.forward(next_note, h_n)
 				next_note = self._get_note_from_logits(logits)
 

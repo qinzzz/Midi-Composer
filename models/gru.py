@@ -36,6 +36,6 @@ class GRU(nn.Module):
 		else:
 			output, h_n = self.gru(x_embed)
 
-		logits = self.linear2(output)
+		logits = self.sigmoid(self.linear2(output))
 
 		return logits, h_n

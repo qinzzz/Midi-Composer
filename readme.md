@@ -111,4 +111,6 @@ first try: use jazz dataset
     
 ## About generation model
 
+one-hot编码由于数据中0的数量过多，预测结果偏差很大。
+
 some ideas and code are borrowed from https://github.com/Conchylicultor/MusicGenerator

@@ -12,13 +12,11 @@ import unittest
 
 import numpy as np
 import torch
-from pypianoroll import Multitrack
+from pypianoroll import Multitrack, Track
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from dataset.base import BaseDataset
-
-MIDI_NOTES_RANGE = [21, 109]  # Min and max (included) midi note on a piano
 
 
 class PianorollDataset(BaseDataset):
@@ -52,13 +50,27 @@ class PianorollDataset(BaseDataset):
 		# trans pose
 		pianoroll = np.transpose(pianoroll, (2, 0, 1))  # [time, pitch, track] --> [track, time, pitch]
 		# the first track is not considered
-		pianoroll = pianoroll[1:, :, MIDI_NOTES_RANGE[0]:MIDI_NOTES_RANGE[1]]
+		pianoroll = pianoroll[1:]
 
 		if pianoroll.shape[0] == 0:
 			return None
 
 		print(pianoroll.shape)
 		return pianoroll
+
+	def _np_to_song(self, pianoroll):
+		"""
+
+		:param pianoroll: ndarray [track, time, pitch]
+		:return: Multitrack
+		"""
+		tracks = []
+		#
+		for line in pianoroll:
+			new_track = Track(pianoroll = line)
+			tracks.append(new_track)
+		song = Multitrack(tracks = tracks)
+		return song
 
 	def _prepare_examples(self):
 		example_path = os.path.join(self.data_root, self.example_file)
