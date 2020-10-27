@@ -64,9 +64,9 @@ class Song:
 
 	def display(self):
 		print("--- Song ---")
-		print("ticks pre beat: {}, scale: {}".format(self.ticks_per_beat, self._get_scale()))
-		print("track numbers:", self.track_nb)
-		print("tempo map:", self.tempo_map)
+		print(("ticks pre beat: {}, scale: {}".format(self.ticks_per_beat, self._get_scale())))
+		print(("track numbers:", self.track_nb))
+		print(("tempo map:", self.tempo_map))
 
 		for i, track in enumerate(self.tracks):
 			track.display()

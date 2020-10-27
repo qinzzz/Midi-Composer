@@ -6,251 +6,139 @@ midiparser.py
 
 @desc:
 	parse midi file to our defined song structure.
-	based on Conchylicultor's repo.
-	https://github.com/Conchylicultor/MusicGenerator
+	based on Daniil Pakhomov's repo.
 """
+import os
 
-import mido  # Midi lib
+import numpy as np
+import torch
+import torch.utils.data as data
 
-from song_components.song import Song
-from song_components.track import Track
-from song_components.note import Note
-
-class MidiInvalidException(Exception):
-	pass
+from midi.utils import midiread
 
 
-class MidiParser:
-	""" Class which manage the midi files at the message level
-	"""
-	META_INFO_TYPES = [  # Can safely be ignored
-		'midi_port',
-		'track_name',
-		'lyrics',
-		'end_of_track',
-		'copyright',
-		'marker',
-		'text'
-	]
-	META_TEMPO_TYPES = [  # Have an impact on how the song is played
-		'key_signature',
-		'set_tempo',
-		'time_signature'
-	]
+def midi_filename_to_piano_roll(midi_filename):
+	midi_data = midiread(midi_filename, dt = 0.3)
 
-	MINIMUM_TRACK_LENGTH = 4  # Bellow this value, the track will be ignored
+	piano_roll = midi_data.piano_roll.transpose()
 
-	MIDI_CHANNEL_DRUMS = 10  # The channel reserved for the drums (according to the specs)
+	# Binarize the pressed notes
+	piano_roll[piano_roll > 0] = 1
 
-	# Define a max song length ?
+	return piano_roll
 
-	# self.data = None  # Sparse tensor of size [NB_KEYS,nb_bars*BAR_DIVISION] or simply a list of note ?
 
-	@staticmethod
-	def load_file(filename):
-		""" Extract data from midi file
-		Args:
-			filename (str): a valid midi file
-		Return:
-			Song: a song object containing the tracks and melody
-		"""
-		# Load in the MIDI data using the midi module
-		midi_data = mido.MidiFile(filename)
+def pad_piano_roll(piano_roll, max_length = 132333, pad_value = 0):
+	# 128 pitches
 
-		# Get header values
+	original_piano_roll_length = piano_roll.shape[1]
 
-		# 3 midi types:
-		# * type 0 (single track): all messages are saved in one multi-channel track
-		# * type 1 (synchronous): all tracks start at the same time
-		# * type 2 (asynchronous): each track is independent of the others
+	padded_piano_roll = np.zeros((88, max_length))
+	padded_piano_roll[:] = pad_value
 
-		# Division (ticks per beat notes or SMTPE timecode)
-		# If negative (first byte=1), the mode is SMTPE timecode (unsupported)
-		# 1 MIDI clock = 1 beat = 1 quarter note
+	padded_piano_roll[:, :original_piano_roll_length] = piano_roll
 
-		# Assert
-		if midi_data.type != 1:
-			raise MidiInvalidException('Only type 1 supported ({} given)'.format(midi_data.type))
-		if not 0 < midi_data.ticks_per_beat:
-			raise MidiInvalidException('SMTPE timecode not supported ({} given)'.format(midi_data.ticks_per_beat))
+	return padded_piano_roll
 
-		# Get tracks messages
 
-		# The tracks are a mix of meta messages, which determine the tempo and signature, and note messages, which
-		# correspond to the melodie.
-		# Generally, the meta event are set at the beginning of each tracks. In format 1, these meta-events should be
-		# contained in the first track (known as 'Tempo Map').
+class NotesGenerationDataset(data.Dataset):
 
-		# If not set, default parameters are:
-		#  * time signature: 4/4
-		#  * tempo: 120 beats per minute
+	def __init__(self, midi_folder_path, longest_sequence_length = 1491):
+		self.midi_folder_path = midi_folder_path
 
-		# Each event contain begins by a delta time value, which correspond to the number of ticks from the previous
-		# event (0 for simultaneous event)
+		midi_filenames = os.listdir(midi_folder_path)
 
-		tempo_map = midi_data.tracks[0]  # Will contains the tick scales
-		# TODO: smpte_offset
+		self.longest_sequence_length = longest_sequence_length
 
-		# Warning: The drums are filtered
+		midi_full_filenames = map(lambda filename: os.path.join(midi_folder_path, filename),
+								  midi_filenames)
 
-		# Merge tracks ? < Not when creating the dataset
-		# midi_data.tracks = [mido.merge_tracks(midi_data.tracks)] ??
+		self.midi_full_filenames = list(midi_full_filenames)
 
-		new_song = Song()
+		if longest_sequence_length is None:
+			self.update_the_max_length()
 
-		new_song.ticks_per_beat = midi_data.ticks_per_beat
+	def update_the_max_length(self):
+		"""Recomputes the longest sequence constant of the dataset.
 
-		# TODO: Normalize the ticks per beats (same for all songs)
-
-		for message in tempo_map:
-			# TODO: Check we are only 4/4 (and there is no tempo changes ?)
-			if not isinstance(message, mido.MetaMessage):
-				raise MidiInvalidException('Tempo map should not contains notes')
-			if message.type in MidiParser.META_INFO_TYPES:
-				pass
-			elif message.type == 'set_tempo':
-				new_song.tempo_map.append(message)
-			elif message.type in MidiParser.META_TEMPO_TYPES:  # We ignore the key signature and time_signature ?
-				pass
-			elif message.type == 'smpte_offset':
-				pass  # TODO
-			else:
-				err_msg = 'Header track contains unsupported meta-message type ({})'.format(message.type)
-				# raise MidiInvalidException(err_msg)
-
-		new_song.track_nb = len(midi_data.tracks)
-
-		for i, track in enumerate(midi_data.tracks[1:]):  # We ignore the tempo map
-			i += 1  # Warning: We have skipped the track 0 so shift the track id
-			# tqdm.write('Track {}: {}'.format(i, track.name))
-
-			new_track = Track()
-			new_track.id = i
-
-			buffer_notes = []  # Store the current notes (pressed but not released)
-			abs_tick = 0  # Absolute nb of ticks from the beginning of the track
-			for message in track:
-				abs_tick += message.time
-				if isinstance(message, mido.MetaMessage):  # Lyrics, track name and other meta info
-					if message.type in MidiParser.META_INFO_TYPES:
-						pass
-					elif message.type in MidiParser.META_TEMPO_TYPES:
-						# TODO: Could be just a warning
-						raise MidiInvalidException('Track {} should not contain {}'.format(i, message.type))
-					else:
-						err_msg = 'Track {} contains unsupported meta-message type ({})'.format(i, message.type)
-						# raise MidiInvalidException(err_msg)
-
-				else:  # Note event
-					if message.type == 'note_on' and message.velocity != 0:  # Note added
-						new_note = Note()
-						new_note.tick = abs_tick
-						new_note.note = message.note
-
-						# # TODO: ignore for NOW. Check later!!
-						# if message.channel + 1 != i and message.channel + 1 != MidiParser.MIDI_CHANNEL_DRUMS:
-						# 	# Warning: Mido shift the channels (start at 0) # TODO: Channel management for type 0
-						# 	raise MidiInvalidException('Notes belong to the wrong tracks ({} instead of {})'.format(i,
-						# 																							message.channel))  # Warning: May not be an error (drums ?) but probably
-						buffer_notes.append(new_note)
-					elif message.type == 'note_off' or message.type == 'note_on':  # Note released
-						for note in buffer_notes:
-							if note.note == message.note:
-								note.duration = abs_tick - note.tick
-								buffer_notes.remove(note)
-								new_track.notes.append(note)
-					elif message.type == 'program_change':  # Instrument change
-						# TODO: ignore for now. BUT We should create another track with the new instrument
-						# if not new_track.set_instrument(message):
-						# 	raise MidiInvalidException('Track {} as already a program defined'.format(i))
-						pass
-					elif message.type == 'control_change':  # Damper pedal, mono/poly, channel volume,...
-						# Ignored
-						pass
-					elif message.type == 'aftertouch':  # Signal send after a key has been press. What real effect ?
-						# Ignored ?
-						pass
-					elif message.type == 'pitchwheel':  # Modulate the song
-						# Ignored
-						pass
-					else:
-						err_msg = 'Track {} contains unsupported message type ({})'.format(i, message)
-						raise MidiInvalidException(err_msg)
-				# Message read
-			# Track read
-
-			# Assert
-			if buffer_notes:  # All notes should have ended
-				raise MidiInvalidException('Some notes ({}) did not ended'.format(len(buffer_notes)))
-			if len(new_track.notes) < MidiParser.MINIMUM_TRACK_LENGTH:
-				# tqdm.write('Track {} ignored (too short): {} notes'.format(i, len(new_track.notes)))
-				continue
-			if new_track.is_drum:
-				# tqdm.write('Track {} ignored (is drum)'.format(i))
-				continue
-
-			new_song.tracks.append(new_track)
-		# All track read
-
-		if not new_song.tracks:
-			raise MidiInvalidException('Empty song. No track added')
-
-		return new_song
-
-	@staticmethod
-	def write_song(song, filename):
-		""" Save the song on disk
-		Args:
-			song (Song): a song object containing the tracks and melody
-			filename (str): the path were to save the song (don't add the file extension)
+		Reads all the midi files from the midi folder and finds the max
+		length.
 		"""
 
-		midi_data = mido.MidiFile(ticks_per_beat = song.ticks_per_beat)
+		sequences_lengths = list(map(lambda filename: midi_filename_to_piano_roll(filename).shape[1],
+									 self.midi_full_filenames))
 
-		# Define track 0
-		new_track = mido.MidiTrack()
-		midi_data.tracks.append(new_track)
-		new_track.extend(song.tempo_map)
+		max_length = max(sequences_lengths)
 
-		for i, track in enumerate(song.tracks):
-			# Define the track
-			new_track = mido.MidiTrack()
-			midi_data.tracks.append(new_track)
-			new_track.append(mido.Message('program_change', program = 0, time = 0))  # Played with standard piano
+		self.longest_sequence_length = max_length
 
-			messages = []
-			for note in track.notes:
-				# Add all messages in absolute time
-				messages.append(mido.Message(
-					'note_on',
-					note = note.note,  # WARNING: The note should be int (NOT np.int64)
-					velocity = 64,
-					channel = i,
-					time = note.tick))
-				messages.append(mido.Message(
-					'note_off',
-					note = note.note,
-					velocity = 64,
-					channel = i,
-					time = note.tick + note.duration)
-				)
+	def __len__(self):
+		return len(self.midi_full_filenames)
 
-			# Reorder the messages chronologically
-			messages.sort(key = lambda x: x.time)
+	def __getitem__(self, index):
+		midi_full_filename = self.midi_full_filenames[index]
 
-			# Convert absolute tick in relative tick
-			last_time = 0
-			for message in messages:
-				message.time -= last_time
-				last_time += message.time
+		piano_roll = midi_filename_to_piano_roll(midi_full_filename)
 
-				new_track.append(message)
+		# -1 because we will shift it
+		sequence_length = piano_roll.shape[1] - 1
 
-		midi_data.save(filename + '.mid')
+		# Shifted by one time step
+		input_sequence = piano_roll[:, :-1]
+		ground_truth_sequence = piano_roll[:, 1:]
+
+		# pad sequence so that all of them have the same lenght
+		# Otherwise the batching won't work
+		input_sequence_padded = pad_piano_roll(input_sequence, max_length = self.longest_sequence_length)
+
+		ground_truth_sequence_padded = pad_piano_roll(ground_truth_sequence,
+													  max_length = self.longest_sequence_length,
+													  pad_value = -100)
+
+		input_sequence_padded = input_sequence_padded.transpose()
+		ground_truth_sequence_padded = ground_truth_sequence_padded.transpose()
+
+		return (torch.FloatTensor(input_sequence_padded),
+				torch.LongTensor(ground_truth_sequence_padded),
+				torch.LongTensor([sequence_length]))
+
+
+def post_process_sequence_batch(batch_tuple):
+	input_sequences, output_sequences, lengths = batch_tuple
+
+	splitted_input_sequence_batch = input_sequences.split(split_size = 1)
+	splitted_output_sequence_batch = output_sequences.split(split_size = 1)
+	splitted_lengths_batch = lengths.split(split_size = 1)
+
+	training_data_tuples = zip(splitted_input_sequence_batch,
+							   splitted_output_sequence_batch,
+							   splitted_lengths_batch)
+
+	training_data_tuples_sorted = sorted(training_data_tuples,
+										 key = lambda p: int(p[2]),
+										 reverse = True)
+
+	splitted_input_sequence_batch, splitted_output_sequence_batch, splitted_lengths_batch = zip(
+		*training_data_tuples_sorted)
+
+	input_sequence_batch_sorted = torch.cat(splitted_input_sequence_batch)
+	output_sequence_batch_sorted = torch.cat(splitted_output_sequence_batch)
+	lengths_batch_sorted = torch.cat(splitted_lengths_batch)
+
+	# Here we trim overall data matrix using the size of the longest sequence
+	input_sequence_batch_sorted = input_sequence_batch_sorted[:, :lengths_batch_sorted[0, 0], :]
+	output_sequence_batch_sorted = output_sequence_batch_sorted[:, :lengths_batch_sorted[0, 0], :]
+
+	input_sequence_batch_transposed = input_sequence_batch_sorted.transpose(0, 1)
+
+	# pytorch's api for rnns wants lenghts to be list of ints
+	lengths_batch_sorted_list = list(lengths_batch_sorted)
+	lengths_batch_sorted_list = list(map(lambda x: int(x), lengths_batch_sorted_list))
+
+	return input_sequence_batch_transposed, output_sequence_batch_sorted, lengths_batch_sorted_list
 
 
 if __name__ == "__main__":
-	parser = MidiParser()
-	song = parser.load_file("data/4thAvenueTheme.mid")
-	song.display()
-
+	# Test
+	piano_roll = midi_filename_to_piano_roll("Piano-midi/valid/bach_846.mid")
+	print(piano_roll.nonzero())

@@ -109,8 +109,9 @@ first try: use jazz dataset
     
     这样note.tick就能准确反应每个音符的长短，与节拍无关。
     
+6. Download midi library from [link]( http://www.iro.umontreal.ca/~lisa/deep/midi.zip)
+    
 ## About generation model
 
-one-hot编码由于数据中0的数量过多，预测结果偏差很大。
 
-some ideas and code are borrowed from https://github.com/Conchylicultor/MusicGenerator
+

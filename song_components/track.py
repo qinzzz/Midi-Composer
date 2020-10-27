@@ -41,6 +41,6 @@ class Track:
 		return True
 
 	def display(self):
-		print("--- Track {} ---".format(self.id))
+		print(("--- Track {} ---".format(self.id)))
 		for note in self.notes:
 			note.display()

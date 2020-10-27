@@ -15,7 +15,7 @@ from song_components.song import Song
 
 class RNNComposer:
 	def __init__(self):
-		self.note_nb = 128
+		self.note_nb = 88
 		self.look_before_limit = None
 		self.model = GRU(self.note_nb)
 		self.loss_function = nn.BCELoss()
