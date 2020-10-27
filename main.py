@@ -7,10 +7,10 @@ main.py
 @desc:
 """
 
-import composer
 import torch
-from trainer import Trainer
+
 from midiparser import NotesGenerationDataset
+from trainer import Trainer
 
 if __name__ == "__main__":
 	trainset = NotesGenerationDataset('Piano-midi/train/')
