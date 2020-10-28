@@ -17,7 +17,7 @@ from midiparser import post_process_sequence_batch
 
 
 class Trainer:
-	def __init__(self, dataset, train_dataloader, val_dataloader, lr = 1e-3, epochs = 1200):
+	def __init__(self, dataset, train_dataloader, val_dataloader, lr = 1e-3, epochs = 100000):
 		print("init trainer... ")
 		print("args: lr = {}, epochs = {}".format(lr, epochs))
 		self.init_lr = lr
@@ -72,8 +72,11 @@ class Trainer:
 			print("val loss: {}".format(current_val_loss))
 
 			if current_val_loss < self.best_val_loss:
-				torch.save(self.composer.model.state_dict(), 'model_{}_{}ep_{}.pth'.format(self.dataset, epoch_number, self.init_lr))
+				torch.save(self.composer.model.state_dict(), 'model_best_{}_{}_{}.pth'.format(self.dataset, self.composer.layers, self.composer.hidden_size))
 				self.best_val_loss = current_val_loss
+
+			if epoch_number % 200 == 0 and epoch_number > 0:
+				torch.save(self.composer.model.state_dict(), 'model_epoch{}_{}_{}.pth'.format(epoch_number, self.composer.layers, self.composer.hidden_size))
 
 	def validate(self):
 		full_val_loss = 0.0
