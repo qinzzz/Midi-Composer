@@ -94,7 +94,7 @@ class Trainer:
 
 			loss = self.criterion_val(logits, output_sequences_batch)
 
-			full_val_loss += loss.data[0]
+			full_val_loss += loss.item()
 			overall_sequence_length += sum(sequences_lengths)
 
 		return full_val_loss / (overall_sequence_length * 88)
