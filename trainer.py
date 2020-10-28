@@ -52,7 +52,7 @@ class Trainer:
 		for epoch_number in tqdm(range(self.epochs_number)):
 			print("Epoch: {}".format(epoch_number))
 
-			for batch in tqdm(self.train_dataloader):
+			for batch in self.train_dataloader:
 				input_sequences_batch, output_sequences_batch, sequences_lengths = post_process_sequence_batch(batch)
 
 				output_sequences_batch = output_sequences_batch.contiguous().view(-1).cuda()
