@@ -1,9 +1,22 @@
 # Midi Composer
 
-**Under construction**
+## Prerequisites
 
-**For now, ignore midiparser.py, song_componets/.**
+1. midi dataset [download](http://www-etud.iro.umontreal.ca/~boulanni/icml2012)
 
+2. lyrics dataset [download](https://www.kaggle.com/paultimothymooney/poetry)
+
+
+## Run
+train lyrics generation
+```bash
+    python main.py --task lyric --dataset [hottingham/piano.de] <args> 
+```
+
+train music generation
+```bash
+    python main.py --task midi <args>
+```
 
 ## About music data processing
 
