@@ -113,5 +113,23 @@ first try: use jazz dataset
     
 ## About generation model
 
+language model 
+GRU
+    
+## Experiments
 
+1. piano.de
+CUDA_VISIBLE_DEVICES=0,1,2,3 python main.py --epochs=100000 --batch=16 --lr=0.001
 
+epoch = 0:
+    val_loss 0.5487
+    
+epoch = 1800:
+    val_loss 0.1535
+    save model: gru_pianode_1024d_1800epoch.pth
+
+2. nottingham
+CUDA_VISIBLE_DEVICES=0,1,2,3 python main.py --epochs=100000 --batch=16 --lr=0.001 --dataset nottingham
+
+epoch = 0:
+    val_loss 0.5397

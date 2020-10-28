@@ -6,7 +6,6 @@ trainer.py
 
 @desc: training and evaluation
 """
-import unittest
 
 import torch
 import torch.nn as nn
@@ -18,12 +17,13 @@ from midiparser import post_process_sequence_batch
 
 
 class Trainer:
-	def __init__(self, train_dataloader, val_dataloader, lr = 1e-3, epochs = 1200):
+	def __init__(self, dataset, train_dataloader, val_dataloader, lr = 1e-3, epochs = 1200):
 		print("init trainer... ")
 		print("args: lr = {}, epochs = {}".format(lr, epochs))
 		self.init_lr = lr
 		self.epochs_number = epochs
 
+		self.dataset = dataset
 		self.composer = RNNComposer()
 		self.composer.model = self.composer.model.cuda()
 
@@ -72,7 +72,7 @@ class Trainer:
 			print("val loss: {}".format(current_val_loss))
 
 			if current_val_loss < self.best_val_loss:
-				torch.save(self.composer.model.state_dict(), 'music_rnn_pianode.pth')
+				torch.save(self.composer.model.state_dict(), 'model_{}_{}ep_{}.pth'.format(self.dataset, epoch_number, self.init_lr))
 				self.best_val_loss = current_val_loss
 
 	def validate(self):
@@ -99,30 +99,3 @@ class Trainer:
 
 	def get_composer(self):
 		return self.composer
-
-
-class TrainerTest(unittest.TestCase):
-	def test_train(self):
-		trainer = Trainer()
-		trainer.train()
-
-		# composer = trainer.get_composer()
-		# # [batch, seq_len, note_nb]
-		#
-		# input_file = "data/midi/younight.mid"
-		# given_song = Multitrack(input_file)
-		# given_song.binarize()
-		# given_pianoroll = trainer.dataset._process_song(given_song)
-		# given_notes = given_pianoroll[1, :500]
-		# given_notes = torch.tensor(given_notes).float().unsqueeze(0)
-		#
-		# next_notes = composer.predict_next_sequence(given_notes, length = 5000) #  [batch, length, note_nb]
-		# print(next_notes.nonzero())
-		#
-		# next_notes = next_notes.numpy()
-		# auto_song = trainer.dataset._np_to_song(next_notes)
-		#
-		#
-		#
-		# out_file = "data/midi/younight_auto.mid"
-		# auto_song.write(out_file)

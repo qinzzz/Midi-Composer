@@ -45,5 +45,5 @@ if __name__ == "__main__":
 												drop_last = False)
 	print("data loaded.")
 
-	trainer = Trainer(trainset_loader, valset_loader, args.lr, args.epochs)
+	trainer = Trainer(args.dataset, trainset_loader, valset_loader, args.lr, args.epochs)
 	trainer.train()
