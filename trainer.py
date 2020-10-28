@@ -17,7 +17,7 @@ from midiparser import post_process_sequence_batch
 
 
 class Trainer:
-	def __init__(self, dataset, train_dataloader, val_dataloader, lr = 1e-3, epochs = 100000):
+	def __init__(self, dataset, train_dataloader, val_dataloader, lr = 1e-3, epochs = 100000, parallel=False):
 		print("init trainer... ")
 		print("args: lr = {}, epochs = {}".format(lr, epochs))
 		self.init_lr = lr
@@ -26,6 +26,8 @@ class Trainer:
 		self.dataset = dataset
 		self.composer = RNNComposer()
 		self.composer.model = self.composer.model.cuda()
+		if parallel:
+			self.composer.model = nn.DataParallel(self.composer.model)
 
 		self.train_dataloader = train_dataloader
 		self.val_dataloader = val_dataloader

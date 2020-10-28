@@ -22,14 +22,13 @@ def parse_args():
 	parser.add_argument("--lr", type=float, default = 1e-3)
 	parser.add_argument("--epochs", type = int, default = 100000)
 	parser.add_argument("--dataset", type = str, default = "nottingham")
+	parser.add_argument("--parallel", action = "store_true")
 
 	args = parser.parse_args()
 	return args
 
 
 def train_song_dataset(args):
-
-
 	dataset = dataset_dict[args.dataset]
 
 	trainset = NotesGenerationDataset(os.path.join(dataset, "train"))
@@ -45,7 +44,7 @@ def train_song_dataset(args):
 												drop_last = False)
 	print("data loaded.")
 
-	trainer = Trainer(args.dataset, trainset_loader, valset_loader, args.lr, args.epochs)
+	trainer = Trainer(args.dataset, trainset_loader, valset_loader, args.lr, args.epochs, parallel = args.parallel)
 	trainer.train()
 
 
@@ -54,6 +53,7 @@ def train_lyrics_dataset():
 
 	trainset_loader = torch.utils.data.DataLoader(trainset, batch_size = 50,
 												  shuffle = True, num_workers = 4, drop_last = True)
+
 
 if __name__ == "__main__":
 	args = parse_args()
