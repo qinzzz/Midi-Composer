@@ -1,5 +1,5 @@
 """
-gru.py
+rnn.py
 
 @time: 10/20/20
 @author: Qinxin Wang
@@ -64,10 +64,10 @@ class lyricsRNN(nn.Module):
 
 	def forward(self, input_sequences, input_sequences_lengths, hidden = None):
 
-		embedded = self.encoder(input_sequences)
+		input_emb = self.encoder(input_sequences) 	# [len, batch] -> [len, batch, dim]
 
 		# Here we run rnns only on non-padded regions of the batch
-		packed = torch.nn.utils.rnn.pack_padded_sequence(embedded, input_sequences_lengths)
+		packed = torch.nn.utils.rnn.pack_padded_sequence(input_emb, input_sequences_lengths)
 		outputs, hidden = self.gru(packed, hidden)
 		outputs, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(outputs)  # unpack (back to padded)
 

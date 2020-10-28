@@ -19,8 +19,9 @@ number_of_characters = len(all_characters)
 
 
 def character_to_label(character):
+	# may fail to find index -- return -1!
 	character_label = all_characters.find(character)
-	return character_label
+	return max(0, character_label)
 
 
 def string_to_labels(character_string):
@@ -44,7 +45,7 @@ class LyricsGenerationDataset(data.Dataset):
 
 		# Get the length of the biggest lyric text
 		# We will need that for padding
-		self.max_text_len = max([len(t) for t in self.lyrics_data])
+		self.max_text_len = 128
 
 		whole_dataset_len = len(self.lyrics_data)
 
@@ -56,15 +57,20 @@ class LyricsGenerationDataset(data.Dataset):
 
 	def read_text(self, filename):
 		filepath = os.path.join(self.dir_root, filename)
+		lines = []
 		with open(filepath, "r") as f:
-			lines = f.readlines()
+			for line in f.readlines():
+				if len(line.strip("\n")) > 10:
+					lines.append(line)
+
 		return lines
 
 	def __len__(self):
-		return len(self.indexes)
+		return 10000
+		# return len(self.indexes)
 
 	def __getitem__(self, index):
-		sequence_raw_string = self.lyrics_data[index]
+		sequence_raw_string = self.lyrics_data[index][:self.max_text_len]
 		# print(sequence_raw_string)
 
 		sequence_string_labels = string_to_labels(sequence_raw_string)
@@ -89,6 +95,8 @@ class LyricsGenerationDataset(data.Dataset):
 
 if __name__ == "__main__":
 	dset = LyricsGenerationDataset("lyrics")
+	print([len(t) for t in dset.lyrics_data])
+	print(dset.__len__())
 	print(dset.__getitem__(0))
 	print(dset.__getitem__(1))
 	print(dset.__getitem__(2))

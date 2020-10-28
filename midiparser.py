@@ -41,7 +41,7 @@ def pad_piano_roll(piano_roll, max_length = 132333, pad_value = 0):
 	return padded_piano_roll
 
 
-def post_process_sequence_batch(batch_tuple):
+def process_midi_sequence_batch(batch_tuple):
 	input_sequences, output_sequences, lengths = batch_tuple
 
 	splitted_input_sequence_batch = input_sequences.split(split_size = 1)
@@ -66,6 +66,40 @@ def post_process_sequence_batch(batch_tuple):
 	# Here we trim overall data matrix using the size of the longest sequence
 	input_sequence_batch_sorted = input_sequence_batch_sorted[:, :lengths_batch_sorted[0, 0], :]
 	output_sequence_batch_sorted = output_sequence_batch_sorted[:, :lengths_batch_sorted[0, 0], :]
+
+	input_sequence_batch_transposed = input_sequence_batch_sorted.transpose(0, 1)
+
+	# pytorch's api for rnns wants lenghts to be list of ints
+	lengths_batch_sorted_list = list(lengths_batch_sorted)
+	lengths_batch_sorted_list = list(map(lambda x: int(x), lengths_batch_sorted_list))
+
+	return input_sequence_batch_transposed, output_sequence_batch_sorted, lengths_batch_sorted_list
+
+
+def process_lyric_sequence_batch(batch_tuple):
+	input_sequences, output_sequences, lengths = batch_tuple
+
+	splitted_input_sequence_batch = input_sequences.split(split_size = 1)
+	splitted_output_sequence_batch = output_sequences.split(split_size = 1)
+	splitted_lengths_batch = lengths.split(split_size = 1)
+
+	training_data_tuples = zip(splitted_input_sequence_batch,
+							   splitted_output_sequence_batch,
+							   splitted_lengths_batch)
+
+	training_data_tuples_sorted = sorted(training_data_tuples,
+										 key = lambda p: int(p[2]),
+										 reverse = True)
+
+	splitted_input_sequence_batch, splitted_output_sequence_batch, splitted_lengths_batch = zip(
+		*training_data_tuples_sorted)
+
+	input_sequence_batch_sorted = torch.cat(splitted_input_sequence_batch)
+	output_sequence_batch_sorted = torch.cat(splitted_output_sequence_batch)
+	lengths_batch_sorted = torch.cat(splitted_lengths_batch)
+
+	input_sequence_batch_sorted = input_sequence_batch_sorted[:, :lengths_batch_sorted[0, 0]]
+	output_sequence_batch_sorted = output_sequence_batch_sorted[:, :lengths_batch_sorted[0, 0]]
 
 	input_sequence_batch_transposed = input_sequence_batch_sorted.transpose(0, 1)
 

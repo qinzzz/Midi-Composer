@@ -12,11 +12,11 @@ import torch.nn as nn
 from torch import optim
 from tqdm import tqdm
 
-from midiparser import post_process_sequence_batch
+from midiparser import process_midi_sequence_batch, process_lyric_sequence_batch
 
 
 class Trainer:
-	def __init__(self, task, composer, dataset, train_dataloader, val_dataloader, lr = 1e-3, epochs = 100000, parallel=False):
+	def __init__(self, composer, task, dataset, train_dataloader, val_dataloader, lr = 1e-3, epochs = 100000, parallel=False):
 		print("init trainer... ")
 		print("args: lr = {}, epochs = {}".format(lr, epochs))
 
@@ -27,6 +27,7 @@ class Trainer:
 
 		self.dataset = dataset
 		self.composer = composer
+		self.composer.model = self.composer.model.cuda()
 
 		self.train_dataloader = train_dataloader
 		self.val_dataloader = val_dataloader
@@ -49,7 +50,14 @@ class Trainer:
 			print("Epoch: {}".format(epoch_number))
 
 			for batch in self.train_dataloader:
-				input_sequences_batch, output_sequences_batch, sequences_lengths = post_process_sequence_batch(batch)
+				if self.task == "lyric":
+					input_sequences_batch, output_sequences_batch, sequences_lengths = process_lyric_sequence_batch(
+						batch)
+					# print(input_sequences_batch.shape, output_sequences_batch.shape, sequences_lengths)
+				else:
+					input_sequences_batch, output_sequences_batch, sequences_lengths = process_midi_sequence_batch(batch)
+					# print(input_sequences_batch.shape, output_sequences_batch.shape, sequences_lengths)
+
 
 				output_sequences_batch = output_sequences_batch.contiguous().view(-1).cuda()
 				input_sequences_batch = input_sequences_batch.cuda()
@@ -73,14 +81,40 @@ class Trainer:
 			if epoch_number % 200 == 0 and epoch_number > 0:
 				torch.save(self.composer.model.state_dict(), '{}_model_epoch{}_{}_{}.pth'.format(self.task, epoch_number, self.composer.layers, self.composer.hidden_size))
 
+	def train_lyrics(self):
+		for epoch_number in range(self.epochs_number):
+
+			for batch in self.train_dataloader:
+				post_processed_batch_tuple = process_lyric_sequence_batch(batch)
+
+				input_sequences_batch, output_sequences_batch, sequences_lengths = post_processed_batch_tuple
+
+				output_sequences_batch_var = output_sequences_batch.contiguous().view(-1).cuda()
+				input_sequences_batch_var = input_sequences_batch.cuda()
+
+				self.optimizer.zero_grad()
+
+				logits, _ = self.composer.model(input_sequences_batch_var, sequences_lengths)
+
+				loss = self.loss_func(logits, output_sequences_batch_var)
+				loss.backward()
+
+				# torch.nn.utils.clip_grad_norm(rnn.parameters(), clip)
+
+				self.optimizer.step()
+
+
 	def validate(self):
 		full_val_loss = 0.0
 		overall_sequence_length = 0.0
 
 		for batch in self.val_dataloader:
-			post_processed_batch_tuple = post_process_sequence_batch(batch)
+			if self.task == "lyric":
+				input_sequences_batch, output_sequences_batch, sequences_lengths = process_lyric_sequence_batch(
+					batch)
+			else:
+				input_sequences_batch, output_sequences_batch, sequences_lengths = process_midi_sequence_batch(batch)
 
-			input_sequences_batch, output_sequences_batch, sequences_lengths = post_processed_batch_tuple
 			output_sequences_batch = output_sequences_batch.contiguous().view(-1).cuda()
 			input_sequences_batch = input_sequences_batch.cuda()
 

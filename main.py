@@ -7,6 +7,7 @@ main.py
 @desc:
 """
 import os
+import string
 import argparse
 import torch
 import numpy as np
@@ -23,7 +24,7 @@ def parse_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--batch", type = int, default = 32)
 	parser.add_argument("--lr", type = float, default = 1e-3)
-	parser.add_argument("--epochs", type = int, default = 100000)
+	parser.add_argument("--epochs", type = int, default = 10000)
 	parser.add_argument("--dataset", type = str, default = "nottingham")
 	parser.add_argument("--parallel", action = "store_true")
 	parser.add_argument("--task", type = str, default = "lyric")
@@ -65,9 +66,9 @@ def train_lyrics_dataset(args):
 	train_sampler = SubsetRandomSampler(train_indices)
 	valid_sampler = SubsetRandomSampler(val_indices)
 
-	trainset_loader = torch.utils.data.DataLoader(dataset, batch_size = 50, num_workers = 4, drop_last = True,
+	trainset_loader = torch.utils.data.DataLoader(dataset, batch_size = args.batch, num_workers = 4, drop_last = True,
 												  sampler = train_sampler)
-	valset_loader = torch.utils.data.DataLoader(dataset, batch_size = 50, num_workers = 4, drop_last = True,
+	valset_loader = torch.utils.data.DataLoader(dataset, batch_size = args.batch, num_workers = 4, drop_last = True,
 												sampler = valid_sampler)
 	print("data loaded.")
 

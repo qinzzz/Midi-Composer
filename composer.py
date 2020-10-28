@@ -9,18 +9,17 @@ composer.py
 import torch
 import torch.nn as nn
 
-from model.gru import midiRNN, lyricsRNN
+from model.rnn import midiRNN, lyricsRNN
 
 
 class LyricComposer:
-	def __init__(self, input_size = 100, layers = 2, hidden_size = 512):
+	def __init__(self, input_size = 101, layers = 2, hidden_size = 512, num_class = 100):
 		self.input_size = input_size
 		self.layers = layers
 		self.hidden_size = hidden_size
+		self.num_class = num_class
 		self.look_before_limit = None
-		self.model = lyricsRNN(self.input_size, hidden_size = hidden_size, num_classes = self.input_size, layers = layers)
-
-		self.model = self.model.cuda()
+		self.model = lyricsRNN(self.input_size , hidden_size = hidden_size, num_classes = self.num_class, layers = layers)
 
 
 class RNNSongComposer:
@@ -31,7 +30,6 @@ class RNNSongComposer:
 		self.look_before_limit = None
 		self.model = midiRNN(self.input_size, layers = layers, hidden_size = hidden_size, num_classes = self.input_size)
 
-		self.model = self.model.cuda()
 
 	def _get_note_from_logits(self, logits):
 		"""
