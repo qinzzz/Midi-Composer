@@ -10,15 +10,11 @@ import unittest
 
 import torch
 import torch.nn as nn
-from tqdm import tqdm
-import numpy as np
-from pypianoroll import Multitrack
 from torch import optim
-from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from composer import RNNComposer
 from midiparser import post_process_sequence_batch
-from dataset.pianorolldataset import PianorollDataset
 
 
 class Trainer:
