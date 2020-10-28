@@ -28,14 +28,15 @@ class Trainer:
 		self.EPOCHS = 1
 
 		self.composer = RNNComposer()
+		self.composer.model = self.composer.model.cuda()
 
 		self.train_dataloader = train_dataloader
 		self.val_dataloader = val_dataloader
 
 		self.optimizer = optim.Adam(self.composer.model.parameters(), lr = self.INIT_LR)
 
-		self.criterion = nn.CrossEntropyLoss()
-		self.criterion_val = nn.CrossEntropyLoss(size_average = False)
+		self.criterion = nn.CrossEntropyLoss().cuda()
+		self.criterion_val = nn.CrossEntropyLoss(size_average = False).cuda()
 
 		self.clip = 1.0
 		self.epochs_number = 12000000
@@ -53,15 +54,15 @@ class Trainer:
 			for batch in tqdm(self.train_dataloader):
 				input_sequences_batch, output_sequences_batch, sequences_lengths = post_process_sequence_batch(batch)
 
-				output_sequences_batch_var = output_sequences_batch.contiguous().view(-1)
+				output_sequences_batch = output_sequences_batch.contiguous().view(-1).cuda()
 
-				input_sequences_batch_var = input_sequences_batch
+				input_sequences_batch = input_sequences_batch.cuda()
 
 				self.optimizer.zero_grad()
 
-				logits, _ = self.composer.model(input_sequences_batch_var, sequences_lengths)
+				logits, _ = self.composer.model(input_sequences_batch, sequences_lengths)
 
-				loss = self.criterion(logits, output_sequences_batch_var)
+				loss = self.criterion(logits, output_sequences_batch)
 				self.loss_list.append(loss.item())
 				loss.backward()
 
@@ -85,13 +86,13 @@ class Trainer:
 
 			input_sequences_batch, output_sequences_batch, sequences_lengths = post_processed_batch_tuple
 
-			output_sequences_batch_var = output_sequences_batch.contiguous().view(-1)
+			output_sequences_batch = output_sequences_batch.contiguous().view(-1).cuda()
 
-			input_sequences_batch_var = input_sequences_batch
+			input_sequences_batch = input_sequences_batch.cuda()
 
-			logits, _ = self.composer.model(input_sequences_batch_var, sequences_lengths)
+			logits, _ = self.composer.model(input_sequences_batch, sequences_lengths)
 
-			loss = self.criterion_val(logits, output_sequences_batch_var)
+			loss = self.criterion_val(logits, output_sequences_batch)
 
 			full_val_loss += loss.data[0]
 			overall_sequence_length += sum(sequences_lengths)
