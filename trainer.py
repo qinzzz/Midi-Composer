@@ -22,10 +22,11 @@ from dataset.pianorolldataset import PianorollDataset
 
 
 class Trainer:
-	def __init__(self, train_dataloader, val_dataloader):
+	def __init__(self, train_dataloader, val_dataloader, lr = 1e-3, epochs = 1200):
 		print("init trainer... ")
-		self.INIT_LR = 1e-3
-		self.EPOCHS = 1
+		print("args: lr = {}, epochs = {}".format(lr, epochs))
+		self.init_lr = lr
+		self.epochs_number = epochs
 
 		self.composer = RNNComposer()
 		self.composer.model = self.composer.model.cuda()
@@ -33,13 +34,12 @@ class Trainer:
 		self.train_dataloader = train_dataloader
 		self.val_dataloader = val_dataloader
 
-		self.optimizer = optim.Adam(self.composer.model.parameters(), lr = self.INIT_LR)
+		self.optimizer = optim.Adam(self.composer.model.parameters(), lr = self.init_lr)
 
 		self.criterion = nn.CrossEntropyLoss().cuda()
 		self.criterion_val = nn.CrossEntropyLoss(size_average = False).cuda()
 
 		self.clip = 1.0
-		self.epochs_number = 12000000
 		self.sample_history = []
 		self.best_val_loss = float("inf")
 
@@ -49,7 +49,8 @@ class Trainer:
 	def train(self):
 		print("Start training...")
 
-		for epoch_number in range(self.epochs_number):
+		for epoch_number in tqdm(range(self.epochs_number)):
+			print("Epoch: {}".format(epoch_number))
 
 			for batch in tqdm(self.train_dataloader):
 				input_sequences_batch, output_sequences_batch, sequences_lengths = post_process_sequence_batch(batch)
@@ -72,10 +73,11 @@ class Trainer:
 
 			current_val_loss = self.validate()
 			self.val_list.append(current_val_loss)
+			print("val loss: {}".format(current_val_loss))
 
-			if current_val_loss < best_val_loss:
+			if current_val_loss < self.best_val_loss:
 				torch.save(self.composer.model.state_dict(), 'music_rnn_pianode.pth')
-				best_val_loss = current_val_loss
+				self.best_val_loss = current_val_loss
 
 	def validate(self):
 		full_val_loss = 0.0
