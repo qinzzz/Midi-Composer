@@ -133,3 +133,6 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python main.py --epochs=100000 --batch=16 --lr=0.00
 
 epoch = 0:
     val_loss 0.5397
+
+epoch = 1000
+    val_loss 0.1139

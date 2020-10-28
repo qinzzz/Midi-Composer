@@ -9,17 +9,29 @@ composer.py
 import torch
 import torch.nn as nn
 
-from models.gru import midiGRU
+from model.gru import midiRNN, lyricsRNN
 
 
-class RNNComposer:
-	def __init__(self, note_nb = 88, layers = 2, hidden_size = 512):
-		self.note_nb = note_nb
+class LyricComposer:
+	def __init__(self, input_size = 100, layers = 2, hidden_size = 512):
+		self.input_size = input_size
 		self.layers = layers
 		self.hidden_size = hidden_size
 		self.look_before_limit = None
-		self.model = midiGRU(self.note_nb, layers = layers, hidden_size = hidden_size)
-		self.loss_function = nn.BCELoss()
+		self.model = lyricsRNN(self.input_size, hidden_size = hidden_size, num_classes = self.input_size, layers = layers)
+
+		self.model = self.model.cuda()
+
+
+class RNNSongComposer:
+	def __init__(self, input_size = 88, layers = 2, hidden_size = 512):
+		self.input_size = input_size
+		self.layers = layers
+		self.hidden_size = hidden_size
+		self.look_before_limit = None
+		self.model = midiRNN(self.input_size, layers = layers, hidden_size = hidden_size, num_classes = self.input_size)
+
+		self.model = self.model.cuda()
 
 	def _get_note_from_logits(self, logits):
 		"""
@@ -72,16 +84,15 @@ class RNNComposer:
 			current_sequence_input[0, 0, 40] = 1
 			current_sequence_input[0, 0, 50] = 1
 			current_sequence_input[0, 0, 56] = 1
+		else:
+			current_sequence_input = starting_sequence
 
 		final_output_sequence = [current_sequence_input.data.squeeze(1)]
-
 		hidden = None
 
 		for i in range(sample_length):
 			output, hidden = self.model(current_sequence_input, [1], hidden)
-
 			probabilities = nn.functional.softmax(output.div(temperature), dim = 1)
-
 			current_sequence_input = torch.multinomial(probabilities.data, 1).squeeze().unsqueeze(0).unsqueeze(
 				1).float()
 

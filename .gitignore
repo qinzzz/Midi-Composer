@@ -3,3 +3,4 @@
 */.DS_Store
 data/*
 Piano-midi/*
+*/__pycache__/*

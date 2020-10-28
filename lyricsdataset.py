@@ -9,7 +9,6 @@ lyricsdataset.py
 import os
 import string
 
-import pandas as pd
 import torch
 import torch.utils.data as data
 
@@ -20,33 +19,16 @@ number_of_characters = len(all_characters)
 
 
 def character_to_label(character):
-	"""Returns a one-hot-encoded tensor given a character.
-
-	Uses string.printable as a dictionary.
-
-	Parameters
-	----------
-	character : str
-		A character
-
-	Returns
-	-------
-	one_hot_tensor : Tensor of shape (1, number_of_characters)
-		One-hot-encoded tensor
-	"""
-
 	character_label = all_characters.find(character)
-
 	return character_label
 
 
 def string_to_labels(character_string):
-	return map(lambda character: character_to_label(character), character_string)
+	return list(map(lambda character: character_to_label(character), character_string))
 
 
 def pad_sequence(seq, max_length, pad_label = 100):
 	seq += [pad_label for i in range(max_length - len(seq))]
-
 	return seq
 
 
@@ -54,40 +36,36 @@ class LyricsGenerationDataset(data.Dataset):
 
 	def __init__(self, dir_root, minimum_song_count = None, artists = None):
 
+		self.dir_root = dir_root
 		self.lyrics_files = os.listdir(dir_root)
 
-
+		self.lyrics_data = []
+		self.read_lyrics()
 
 		# Get the length of the biggest lyric text
 		# We will need that for padding
-		self.max_text_len = self.lyrics_dataframe.text.str.len().max()
+		self.max_text_len = max([len(t) for t in self.lyrics_data])
 
-		whole_dataset_len = len(self.lyrics_dataframe)
+		whole_dataset_len = len(self.lyrics_data)
 
 		self.indexes = range(whole_dataset_len)
 
-		self.artists_list = list(self.lyrics_dataframe.artist.unique())
-
-		self.number_of_artists = len(self.artists_list)
-	#
-	# def read_lyrics(self):
-	# 	for file in self.lyrics_files:
-
+	def read_lyrics(self):
+		for file in self.lyrics_files:
+			self.lyrics_data += self.read_text(file)
 
 	def read_text(self, filename):
-		with open(filename, "r") as f:
+		filepath = os.path.join(self.dir_root, filename)
+		with open(filepath, "r") as f:
 			lines = f.readlines()
 		return lines
 
 	def __len__(self):
-
 		return len(self.indexes)
 
 	def __getitem__(self, index):
-
-		index = self.indexes[index]
-
-		sequence_raw_string = self.lyrics_dataframe.loc[index].text
+		sequence_raw_string = self.lyrics_data[index]
+		# print(sequence_raw_string)
 
 		sequence_string_labels = string_to_labels(sequence_raw_string)
 
@@ -97,7 +75,7 @@ class LyricsGenerationDataset(data.Dataset):
 		input_string_labels = sequence_string_labels[:-1]
 		output_string_labels = sequence_string_labels[1:]
 
-		# pad sequence so that all of them have the same lenght
+		# pad sequence so that all of them have the same length
 		# Otherwise the batching won't work
 		input_string_labels_padded = pad_sequence(input_string_labels, max_length = self.max_text_len)
 
@@ -110,4 +88,8 @@ class LyricsGenerationDataset(data.Dataset):
 
 
 if __name__ == "__main__":
-	dset = LyricsGenerationDataset()
+	dset = LyricsGenerationDataset("lyrics")
+	print(dset.__getitem__(0))
+	print(dset.__getitem__(1))
+	print(dset.__getitem__(2))
+	print(dset.__getitem__(3))

@@ -17,8 +17,8 @@ import torch.utils.data as data
 from midi.utils import midiread
 
 
-def midi_filename_to_piano_roll(midi_filename):
-	midi_data = midiread(midi_filename, dt = 0.3)
+def midi_filename_to_piano_roll(midi_filename, dt= 0.3):
+	midi_data = midiread(midi_filename, dt = dt)
 
 	piano_roll = midi_data.piano_roll.transpose()
 

@@ -93,6 +93,8 @@ def readVar(value):
     >>> readVar('стуa')
     205042145
     """
+    if type(value) is not bytes:
+        value = value.encode()
     sum = 0
     for byte in unpack('%sB' % len(value), value):
         sum = (sum << 7) + (byte & 0x7F)
