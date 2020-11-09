@@ -78,7 +78,7 @@ class Trainer:
 				torch.save(self.composer.model.state_dict(), '{}_model_best_{}_{}_{}.pth'.format(self.task, self.dataset, self.composer.layers, self.composer.hidden_size))
 				self.best_val_loss = current_val_loss
 
-			if epoch_number % 200 == 0 and epoch_number > 0:
+			if epoch_number % 300 == 0 and epoch_number > 0:
 				torch.save(self.composer.model.state_dict(), '{}_model_epoch{}_{}_{}.pth'.format(self.task, epoch_number, self.composer.layers, self.composer.hidden_size))
 
 	def train_lyrics(self):

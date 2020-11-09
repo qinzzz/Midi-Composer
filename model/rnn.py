@@ -14,12 +14,11 @@ class midiRNN(nn.Module):
 	def __init__(self, input_size, hidden_size, num_classes, layers):
 		super(midiRNN, self).__init__()
 
-		self.embeddings = nn.Embedding(input_size, hidden_size)
-		self.encode = nn.Linear(input_size, hidden_size)
-		self.gru = nn.LSTM(hidden_size, hidden_size, num_layers = layers, batch_first = True)
+		self.notes_encoder = nn.Linear(input_size, hidden_size)
+		self.lstm = nn.LSTM(hidden_size, hidden_size, num_layers = layers, batch_first = True)
 		self.logits_fc = nn.Linear(hidden_size, num_classes)
 
-		nn.init.xavier_uniform_(self.encode.weight)
+		nn.init.xavier_uniform_(self.notes_encoder.weight)
 		nn.init.xavier_uniform_(self.logits_fc.weight)
 
 	def forward(self, x_seq, x_len, h_0 = None):
@@ -30,10 +29,10 @@ class midiRNN(nn.Module):
 			logits: [batch, seq_len, note_nb]
 			h_n: [batch, num_layers * num_directions, hidden_size]
 		"""
-		x_embed = self.encode(x_seq)  # [batch, seq_len, input_size]
+		x_embed = self.notes_encoder(x_seq)  # [batch, seq_len, input_size]
 
 		packed_x = torch.nn.utils.rnn.pack_padded_sequence(x_embed, x_len)
-		packed_output, h_n = self.gru(packed_x, h_0)
+		packed_output, h_n = self.lstm(packed_x, h_0)
 		output, output_len = torch.nn.utils.rnn.pad_packed_sequence(packed_output)
 
 		logits = self.logits_fc(output)

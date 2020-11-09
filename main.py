@@ -6,16 +6,17 @@ main.py
 
 @desc:
 """
-import os
-import string
 import argparse
-import torch
+import os
+
 import numpy as np
-from notedataset import NotesGenerationDataset
-from lyricsdataset import LyricsGenerationDataset
-from trainer import Trainer
-from composer import RNNSongComposer, LyricComposer
+import torch
 from torch.utils.data.sampler import SubsetRandomSampler
+
+from composer import RNNSongComposer, LyricComposer
+from lyricsdataset import LyricsGenerationDataset
+from notedataset import NotesGenerationDataset
+from trainer import Trainer
 
 dataset_dict = {"piano": "Piano-midi", "nottingham": "Nottingham"}
 

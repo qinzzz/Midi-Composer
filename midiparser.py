@@ -8,11 +8,9 @@ midiparser.py
 	parse midi file to our defined song structure.
 	based on Daniil Pakhomov's repo.
 """
-import os
 
 import numpy as np
 import torch
-import torch.utils.data as data
 
 from midi.utils import midiread
 

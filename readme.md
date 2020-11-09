@@ -10,13 +10,14 @@
 ## Run
 train lyrics generation
 ```bash
-    python main.py --task lyric --dataset [hottingham/piano.de] <args> 
+    python main.py --task lyric <args> 
 ```
 
 train music generation
 ```bash
-    python main.py --task midi <args>
+    python main.py --task midi --dataset [hottingham/piano.de] <args>
 ```
+
 
 ## About music data processing
 
@@ -70,7 +71,7 @@ first try: use jazz dataset
     - class Note 
         - note: == message.note. 音调，用数字表示，对应88个钢琴键 (0-88)
         - tick: Absolute nb of ticks from the beginning of the track
-        - duration: 不太懂还在看
+        - duration: 
     
 3. 区分速度（tempo）和节拍（meter）
     
