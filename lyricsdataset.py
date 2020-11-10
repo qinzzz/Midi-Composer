@@ -8,11 +8,10 @@ lyricsdataset.py
 """
 import os
 import string
+import random
 
 import torch
 import torch.utils.data as data
-
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 all_characters = string.printable
 number_of_characters = len(all_characters)
@@ -47,13 +46,15 @@ class LyricsGenerationDataset(data.Dataset):
 		# We will need that for padding
 		self.max_text_len = 128
 
-		whole_dataset_len = len(self.lyrics_data)
+		self.whole_dataset_len = len(self.lyrics_data)
 
-		self.indexes = range(whole_dataset_len)
+		self.indexes = range(self.whole_dataset_len)
 
 	def read_lyrics(self):
 		for file in self.lyrics_files:
 			self.lyrics_data += self.read_text(file)
+
+		random.shuffle(self.lyrics_data)
 
 	def read_text(self, filename):
 		filepath = os.path.join(self.dir_root, filename)
@@ -66,8 +67,8 @@ class LyricsGenerationDataset(data.Dataset):
 		return lines
 
 	def __len__(self):
-		return 10000
-		# return len(self.indexes)
+		return 50000
+		# return self.whole_dataset_len
 
 	def __getitem__(self, index):
 		sequence_raw_string = self.lyrics_data[index][:self.max_text_len]

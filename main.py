@@ -23,7 +23,7 @@ dataset_dict = {"piano": "Piano-midi", "nottingham": "Nottingham"}
 
 def parse_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--batch", type = int, default = 32)
+	parser.add_argument("--batch", type = int, default = 64)
 	parser.add_argument("--lr", type = float, default = 1e-3)
 	parser.add_argument("--epochs", type = int, default = 10000)
 	parser.add_argument("--dataset", type = str, default = "nottingham")
