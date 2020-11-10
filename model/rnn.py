@@ -66,9 +66,14 @@ class lyricsRNN(nn.Module):
 		input_emb = self.encoder(input_sequences) 	# [len, batch] -> [len, batch, dim]
 
 		# Here we run rnns only on non-padded regions of the batch
-		packed = torch.nn.utils.rnn.pack_padded_sequence(input_emb, input_sequences_lengths)
+		print("input_emb", input_emb.shape)
+		packed = nn.utils.rnn.pack_padded_sequence(input_emb, input_sequences_lengths)
 		outputs, hidden = self.gru(packed, hidden)
-		outputs, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(outputs)  # unpack (back to padded)
+		print("packed", packed.data.shape)
+		print("before: ", outputs.data.shape)
+		total_length = input_emb.shape[0]
+		outputs, output_lengths = nn.utils.rnn.pad_packed_sequence(outputs, total_length = total_length)  # unpack (back to padded)
+		print("after: ", outputs.shape)
 
 		logits = self.logits_fc(outputs)
 		logits = logits.transpose(0, 1).contiguous()

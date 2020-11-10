@@ -32,7 +32,7 @@ class Trainer:
 		self.composer = composer
 
 		if torch.cuda.device_count()>1:
-			print("Use ", torch.cuda.device_count(), " GPUs.")
+			print("Use", torch.cuda.device_count(), "GPUs.")
 			self.composer.model = nn.DataParallel(self.composer.model)
 		self.composer.model.to(self.device)
 
